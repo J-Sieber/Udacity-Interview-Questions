@@ -5,17 +5,23 @@
 
 # Question 1 ---------------------------------------------------
 
-# Efficiency:   The main part of this code that might take a while to run is the
-#               for loop.  This function will run in O(n) time.
+# Time Efficiency:   The main part of this code that might take a while to run is the
+#                    for loop.  However, since it is a "set" and not a string this 
+#                    function will run in O(1) time.
+#
+#Space Efficiency:  The will use up only the space needed for s and t.  O(1).
 #
 # Code Design:  Code was designed to run efficiently and is easy to understand.
 
 
 def question1(s,t):
     s = str(s)
-    t = str(t)    
+    t = str(t) 
+    s = set(s)
     
-    if s and t is not None and s.isalpha() and t.isalpha():
+    if t == "":
+        return True
+    elif s and t is not None:
         for c in t:
             if c not in s:
                 return False             
@@ -29,14 +35,19 @@ question1(None,"ad")
 question1("udacity",None)
 question1("udacity","")
 question1("udacity",5)
+question1("uda55city",55)
+
 
 # Question 2 ---------------------------------------------------
 
-# Efficiency:   The main part of this code that might take a while to run is the
+# Time Efficiency:   The main part of this code that might take a while to run is the
 #               two for loops.  The first loop will not add a significant amount 
 #               of time to the function because it will only loop a few times.
 #               This function will run in O(n) time because it has to search in 
 #               the second for loop to find the best combination
+#
+#Space Efficiency:  The will use up only the space needed for a and the list created
+#                   with the combinations function. O(n)
 #
 # Code Design:  Itertools was used to use the most efficient method for 
 #               generating the combinations.  
@@ -46,13 +57,16 @@ def question2(a):
     
     #Code could be significantly shorter if you did not check for weird inputs
     from itertools import combinations
-    if a is not None:
+    if a == "":
+        print "Palidrome Found: (Empty String)"  
+        return None
+    elif a is not None:
         a = str(a)
         if a.isalpha():
             for y in range(len(a),0,-1):
                 for x in combinations(a,y):
                     if ''.join(x)==''.join(x)[::-1]:
-                        print ''.join(x)
+                        print "Palidrome Found: " + ''.join(x)
                         return None
     print "No Palidrome Found"
     return None
@@ -63,12 +77,15 @@ question2("a")
 question2("abc")
 question2(None)
 question2(5)
+question2("")
 
 # Question 3 ---------------------------------------------------
 
-# Efficiency:   The main part of this code that might take a while to run is the
+# Time Efficiency:   The main part of this code that might take a while to run is the
 #               two for loops.  This function will run in O(n*m) time.  Where n 
 #               is the number of nodes and m is the number of connections.
+#
+#Space Efficiency:  The will use up only the space needed for G.  O(1)
 #
 # Code Design:  The networkx libary was used to make the code easier to read and 
 #               more effient.  
@@ -78,6 +95,7 @@ def question3(G):
     import networkx as nx
     
     Gnx = nx.Graph()
+    
     for key , value in G.iteritems():
         Gnx.add_node(key)
         
@@ -99,12 +117,16 @@ print(sorted(val.edges(data=True)))
  
 # Question 4 --------------------------------------------------- 
  
-# Efficiency:   The main part of this code that might take a while to run is the
+# Time Efficiency:   The main part of this code that might take a while to run is the
 #               5 for loops.  This function will run in O(2n*2m) time.  Where n 
 #               is the number of nodes and m is the number of connections.  Each
 #               will have to run twice.  Once to generate the tree and the second 
 #               time to fill in the information about where in the tree that node
 #               is.
+#
+#Space Efficiency:  The will use up only the space needed for T,r, n1, and n2.  
+ #                  G, n, and m will be assigned during the call.  This will 
+ #                  result in O(2+n).  The n is for G and the 2 is for n and m.
 #
 # Code Design:  The networkx libary was used to make the code easier to read and 
 #               more effient.  
@@ -166,30 +188,35 @@ print val
 
 # Question 5 ---------------------------------------------------   
 
-# Efficiency:   The main part of this code that might take a while to run is the
-#               while loop.  This function will run in O(n) time. 
+# Time Efficiency:   The main part of this code that might take a while to run is the
+#               while loop and the for loop.  This function will run in O(2n) time. 
+#
+#Space Efficiency:  The will use up only the space needed for 11 and m.  O(1)
 #
 # Code Design:  A list was used to recreate the linked list.  
 
 def question5(ll, m): 
-    
-    FL = []
-    FL.append(ll.data)
+
     NextItem = ll.get_next()
+    count = 1
        
     while NextItem.get_next() is not None:
-        FL.append(NextItem.data)
         NextItem = NextItem.get_next()
-        
-    FL.append(NextItem.data)
-    
+        count += 1
+       
+    selected = ll
+    for i in range(0, count-m):
+        selected = selected.get_next()
+
     if m < 0:
         return "Verify Inputs"    
-    m = len(FL)-1-m
+    m = count-m
     if m < 0:
-        return "Verify Inputs"
-    
-    return FL[m]
+        return "Verify Inputs"    
+        
+    val = selected.get_data()
+
+    return val
 
 #Source for Node and LinkedList Classes: https://www.codefellows.org/blog/implementing-a-singly-linked-list-in-python  
 class Node(object):
