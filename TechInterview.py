@@ -116,15 +116,15 @@ question2("")
     
 def question3(G):
     
-    Gnx = Graph()
+    Gnew = Graph()
     
     for key , value in G.iteritems():
-        Gnx.add_node(key)
+        Gnew.add_node(key)
         
         for val in value:
-            Gnx.add_edge(key,val[0], key = val[1])
+            Gnew.add_edge(key,val[0], key = val[1])
             
-    mst = minimum_spanning_tree(Gnx)
+    mst = minimum_spanning_tree(Gnew)
     return mst
 
     
@@ -323,7 +323,6 @@ def minimum_spanning_tree(G):
 
     return T
 
-
 class UnionFind:
 
     def __init__(self, elements=None):
@@ -335,24 +334,6 @@ class UnionFind:
         for x in elements:
             self.weights[x] = 1
             self.parents[x] = x
-
-    def __getitem__(self, object):
-
-        if object not in self.parents:
-            self.parents[object] = object
-            self.weights[object] = 1
-            return object
-
-        path = [object]
-        root = self.parents[object]
-        while root != path[-1]:
-            path.append(root)
-            root = self.parents[root]
-
-        for ancestor in path:
-            self.parents[ancestor] = root
-        return root
-
 
     def union(self, *objects):
         """Find the sets containing the objects and merge them all."""
@@ -379,13 +360,8 @@ class Graph(object):
         self.graph = {}   # dictionary for graph attributes
         self.node = ndf()  # empty node attribute dict
         self.adj = ndf()  # empty adjacency dict
-        # attempt to load graph with data
-        if data is not None:
-            to_graph(data, create_using=self)
-        # load graph attributes (must be after convert)
         self.graph.update(attr)
         self.edge = self.adj
-
 
     def __iter__(self):
 
@@ -446,41 +422,6 @@ class Graph(object):
         self.adj[u][v] = datadict
         self.adj[v][u] = datadict
 
-    def add_edges_from(self, ebunch, **attr):
-
-        # process ebunch
-        for e in ebunch:
-            ne = len(e)
-            if ne == 3:
-                u, v, dd = e
-            elif ne == 2:
-                u, v = e
-                dd = {}  # doesnt need edge_attr_dict_factory
-
-            if u not in self.node:
-                self.adj[u] = self.adjlist_dict_factory()
-                self.node[u] = {}
-            if v not in self.node:
-                self.adj[v] = self.adjlist_dict_factory()
-                self.node[v] = {}
-            datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
-            datadict.update(attr)
-            datadict.update(dd)
-            self.adj[u][v] = datadict
-            self.adj[v][u] = datadict
-
-    def add_weighted_edges_from(self, ebunch, weight='weight', **attr):
-
-        self.add_edges_from(((u, v, {weight: d}) for u, v, d in ebunch),
-                            **attr)
-
-    def has_edge(self, u, v):
-
-        try:
-            return v in self.adj[u]
-        except KeyError:
-            return False
-
     def neighbors(self, n):
 
         return iter(self.adj[n])
@@ -518,10 +459,6 @@ class Graph(object):
         except KeyError:
             return default
 
-    def adjacency(self):
-
-        return iter(self.adj.items())
-
     def clear(self):
 
         self.name = ''
@@ -539,10 +476,6 @@ class Graph(object):
         """Return True if graph is directed, False otherwise."""
         return False
 
-    def to_undirected(self):
-
-        return deepcopy(self)
-
     def size(self, weight=None):
 
         s = sum(d for v, d in self.degree(weight=weight))
@@ -557,50 +490,9 @@ class Graph(object):
         else:
             return 0
 
-def _prep_create_using(create_using):
-    if create_using is None:
-        return Graph()
-    create_using.clear()
+def shortest_path(G, source=None, target=None):
 
-    return create_using
-
-def to_graph(data,create_using=None):
-    G=_prep_create_using(create_using)
-    G.add_edges_from(data)
-    return G
-
-def shortest_path(G, source=None, target=None, weight=None):
-
-    if target is None:
-        # Find paths to all nodes accessible from the source.
-        if weight is None:
-            paths = single_source_shortest_path(G, source)
-
-    else:
-        # Find shortest source-target path.
-        if weight is None:
-            paths = bidirectional_shortest_path(G, source, target)
-
-    return paths
-
-def single_source_shortest_path(G,source,cutoff=None):
-
-
-    level=0                  # the current level
-    nextlevel={source:1}       # list of nodes to check at next level
-    paths={source:[source]}  # paths dictionary  (paths to key from source)
-    if cutoff==0:
-        return paths
-    while nextlevel:
-        thislevel=nextlevel
-        nextlevel={}
-        for v in thislevel:
-            for w in G[v]:
-                if w not in paths:
-                    paths[w]=paths[v]+[w]
-                    nextlevel[w]=1
-        level=level+1
-        if (cutoff is not None and cutoff <= level):  break
+    paths = bidirectional_shortest_path(G, source, target)
     return paths
 
 def bidirectional_shortest_path(G,source,target):
@@ -626,42 +518,19 @@ def bidirectional_shortest_path(G,source,target):
 
 def _bidirectional_pred_succ(G, source, target):
 
-    # does BFS from both source and target and meets in the middle
-    if target == source:
-        return ({target:None},{source:None},source)
-
-    # handle either directed or undirected
-    if G.is_directed():
-        Gpred=G.predecessors
-        Gsucc=G.successors
-    else:
-        Gpred=G.neighbors
-        Gsucc=G.neighbors
-
-    # predecesssor and successors in search
+    Gsucc=G.neighbors
     pred={source:None}
     succ={target:None}
-
-    # initialize fringes, start with forward
     forward_fringe=[source]
     reverse_fringe=[target]
 
     while forward_fringe and reverse_fringe:
-        if len(forward_fringe) <= len(reverse_fringe):
-            this_level=forward_fringe
-            forward_fringe=[]
-            for v in this_level:
-                for w in Gsucc(v):
-                    if w not in pred:
-                        forward_fringe.append(w)
-                        pred[w]=v
-                    if w in succ:  return pred,succ,w # found path
-        else:
-            this_level=reverse_fringe
-            reverse_fringe=[]
-            for v in this_level:
-                for w in Gpred(v):
-                    if w not in succ:
-                        succ[w]=v
-                        reverse_fringe.append(w)
-                    if w in pred:  return pred,succ,w # found path
+        this_level=forward_fringe
+        forward_fringe=[]
+        for v in this_level:
+            for w in Gsucc(v):
+                if w not in pred:
+                    forward_fringe.append(w)
+                    pred[w]=v
+                if w in succ:  
+                    return pred,succ,w
