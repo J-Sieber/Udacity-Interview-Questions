@@ -11,6 +11,8 @@
 #Space Efficiency:  The will use up only the space needed for s and t.  O(n).
 #
 # Code Design:  Code was designed to run efficiently and is easy to understand.
+#               The code was designed to try to cover all possible inputs and 
+#               still function.
 
 
 def question1(s,t):
@@ -34,16 +36,16 @@ def question1(s,t):
     return True
         
 #Testing the function
-question1("udacity","udazx")
-question1("udacity","ad")
-question1(None,"ad")
-question1("udacity",None)
-question1("udacity","")
-question1("udacity",5)
-question1("uda5city",55)
-question1("uda55city",55)
-question1("hello","hallo")
-question1("aabbcc","abc")
+question1("udacity","udazx")    #Expected Output: False
+question1("udacity","ad")       #Expected Output: True
+question1(None,"ad")            #Expected Output: False
+question1("udacity",None)       #Expected Output: False
+question1("udacity","")         #Expected Output: True
+question1("udacity",5)          #Expected Output: False
+question1("uda5city",55)        #Expected Output: False
+question1("uda55city",55)       #Expected Output: True
+question1("hello","hallo")      #Expected Output: False
+question1("aabbcc","abc")       #Expected Output: True
 
 
 # Question 2 ---------------------------------------------------
@@ -54,7 +56,7 @@ question1("aabbcc","abc")
 #               This function will run in O(n^2) time.  
 #
 #Space Efficiency:  The will use up only the space needed for a and the matrix created
-#                   with the combinations function. O(2n)
+#                   with the combinations function. O(n^2)
 #
 # Code Design:  Using Dynamic programming to find the solution.
 
@@ -93,12 +95,12 @@ def question2(a):
 
 
 #Testing the function
-question2("character")
-question2("a")
-question2("abc")
-question2(None)
-question2(5)
-question2("")
+question2("character")  #Expected Output: carac
+question2("a")          #Expected Output: a
+question2("abc")        #Expected Output: c
+question2(None)         #Expected Output: (None)
+question2(5)            #Expected Output: 5
+question2("")           #Expected Output: (Empty String)
 
 # Question 3 ---------------------------------------------------
 
@@ -108,34 +110,184 @@ question2("")
 #
 #Space Efficiency:  The will use up only the space needed for G.  O(1)
 #
-# Code Design:  The networkx libary functions were used to make the code easier 
-#               to read and more effient.  They are towards the bottom of the page.
-#               Load Functions and classes below before running question3(). 
+# Code Design:  Functions and classes were used to make the code easier 
+#               to read.  
 #               
     
 def question3(G):
-    
+    from copy import deepcopy
     Gnew = Graph()
     
     for key , value in G.iteritems():
         Gnew.add_node(key)
-        
         for val in value:
             Gnew.add_edge(key,val[0], key = val[1])
-            
-    mst = minimum_spanning_tree(Gnew)
-    return mst
 
+    edges = _spanning_edges(Gnew)
+    T = Graph(edges)
+
+    for n in T:
+        T.node[n] = deepcopy(Gnew.node[n])
+    T.graph = deepcopy(Gnew.graph)
+
+    return T
+    
+#Modified from: https://github.com/networkx/networkx
+#Not using networkx functions or classes
+
+def _spanning_edges(G):
+                        
+    subtrees = UnionFind()
+    edges = G.edges()
+    getweight = lambda t: t[-1].get('weight', 1)
+    edges = sorted(edges, key=getweight)
+    
+    for u, v, d in edges:
+        if subtrees[u] != subtrees[v]:
+            yield (u, v, d)
+            subtrees.union(u, v)
+    
+class Graph(object):
+
+    node_dict_factory = dict
+    adjlist_dict_factory = dict
+    edge_attr_dict_factory = dict
+
+    def __init__(self, data=None, **attr):
+
+        self.node_dict_factory = ndf = self.node_dict_factory
+        self.adjlist_dict_factory = self.adjlist_dict_factory
+        self.edge_attr_dict_factory = self.edge_attr_dict_factory
+        self.graph = {}   
+        self.node = ndf()  
+        self.adj = ndf()  
+        if data is not None:
+            if self is None:
+                self = Graph()
+            else:
+                self.clear()
+                self.add_edges_from(data)
+        self.graph.update(attr)
+        self.edge = self.adj
+
+    def __iter__(self):
+        return iter(self.node)
+
+    def __getitem__(self, n):
+        return self.adj[n]
+
+    def add_node(self, n, **attr):
+        if n not in self.node:
+            self.adj[n] = self.adjlist_dict_factory()
+            self.node[n] = attr
+        else:
+            self.node[n].update(attr)
+
+    def nodes(self):
+        for n in self.node:
+            yield n
+
+    def number_of_nodes(self):
+        return len(self.node)
+
+    def add_edge(self, u, v, **attr):
+        if u not in self.node:
+            self.adj[u] = self.adjlist_dict_factory()
+            self.node[u] = {}
+        if v not in self.node:
+            self.adj[v] = self.adjlist_dict_factory()
+            self.node[v] = {}
+
+        datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
+        datadict.update(attr)
+        self.adj[u][v] = datadict
+        self.adj[v][u] = datadict
+
+    def add_edges_from(self, ebunch, **attr):
+        for e in ebunch:
+            ne = len(e)
+            if ne == 3:
+                u, v, dd = e
+            elif ne == 2:
+                u, v = e
+                dd = {}
+
+            if u not in self.node:
+                self.adj[u] = self.adjlist_dict_factory()
+                self.node[u] = {}
+            if v not in self.node:
+                self.adj[v] = self.adjlist_dict_factory()
+                self.node[v] = {}
+            datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
+            datadict.update(attr)
+            datadict.update(dd)
+            self.adj[u][v] = datadict
+            self.adj[v][u] = datadict
+
+    def neighbors(self, n):
+        return iter(self.adj[n])
+
+    def edges(self):
+        seen = {}
+        nodes_nbrs = self.adj.items()
+
+        for n, nbrs in nodes_nbrs:
+            for nbr, ddict in nbrs.items():
+                if nbr not in seen:
+                    yield (n, nbr, ddict)
+            seen[n] = 1
+        del seen
+
+    def clear(self):
+        self.name = ''
+        self.adj.clear()
+        self.node.clear()
+        self.graph.clear()
+
+class UnionFind:
+
+    def __init__(self, elements=None):
+
+        if elements is None:
+            elements = ()
+        self.parents = {}
+        self.weights = {}
+
+    def __getitem__(self, object):
+
+        if object not in self.parents:
+            self.parents[object] = object
+            self.weights[object] = 1
+            return object
+
+        path = [object]
+        root = self.parents[object]
+        while root != path[-1]:
+            path.append(root)
+            root = self.parents[root]
+
+        for ancestor in path:
+            self.parents[ancestor] = root
+        return root
+
+    def union(self, *objects):
+        roots = [self[x] for x in objects]
+
+        heaviest = max(roots, key=lambda r: self.weights[r])
+        for r in roots:
+            if r != heaviest:
+                self.weights[heaviest] += self.weights[r]
+                self.parents[r] = heaviest
     
 #Testing the function
 val = question3({'A':[('B',2)],'B':[('A',2),('C',5)],'C':[('B',5)]})
-print(sorted(val.edges()))
+print(sorted(val.edges()))  #Expected Output: [('A', 'B', {'key': 2}), ('C', 'B', {'key': 5})]
 
 val = question3({'A':[('B',3)],'B':[('A',3),('C',10)],'C':[('B',10)]})
-print(sorted(val.edges()))
+print(sorted(val.edges())) #Expected Output: [('A', 'B', {'key': 3}), ('C', 'B', {'key': 10})]
 
 val = question3({'A':[('B',2)],'B':[('A',2)]})
-print(sorted(val.edges()))
+print(sorted(val.edges())) #Expected Output: [('A', 'B', {'key': 2})]
 
  
 # Question 4 --------------------------------------------------- 
@@ -151,11 +303,9 @@ print(sorted(val.edges()))
 #                   G, n, and m will be assigned during the call.  This will 
 #                   result in O(2+n).  The n is for G and the 2 is for n and m.
 #
-# Code Design:  The networkx libary functions were used to make the code easier 
-#               to read and more effient.  They are towards the bottom of the page. 
-#               Load Functions and classes below before running question4().
+# Code Design:  Functions and classes were used to make the code easier 
+#               to read.
 
- 
 def question4(T, r, n1, n2):
     
     G = Graph()
@@ -193,20 +343,51 @@ def question4(T, r, n1, n2):
             LCALevel = G.node[n]['Level']
             LCA = n
     
-    return LCA    
+    return LCA   
+    
+def shortest_path(G, source=None, target=None):
+    
+    Gsucc=G.neighbors
+    pred={source:None}
+    succ={target:None}
+    forward_fringe=[source]
+    reverse_fringe=[target]
+
+    while forward_fringe and reverse_fringe:
+        this_level=forward_fringe
+        forward_fringe=[]
+        for v in this_level:
+            for w in Gsucc(v):
+                if w not in pred:
+                    forward_fringe.append(w)
+                    pred[w]=v
+                if w in succ:  
+                    results = pred,succ,w
+                    
+    pred,succ,w = results
+    path=[]
+
+    while w is not None:
+        path.append(w)
+        w=pred[w]
+    path.reverse()
+    w=succ[path[-1]]
+    while w is not None:
+        path.append(w)
+        w=succ[w]
+
+    return path
 
 #Testing the function
 val = question4([[0,1,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[1,0,0,0,1],[0,0,0,0,0]],3,1,4)
-#Correct Ans: 3 
-print val
+print val       #Expected Output: 3 
+
 
 val = question4([[0,0,0,0,0],[0,0,0,0,0],[0,1,0,1,1],[0,0,0,0,0],[1,0,0,0,0]],4,3,1)
-#Correct Ans: 2 
-print val
+print val       #Expected Output: 2
 
 val = question4([[0,0,0,0,1],[0,0,1,0,0],[0,1,0,1,1],[0,0,1,0,0],[1,0,1,0,0]],4,3,1)
-#Correct Ans: 2 
-print val
+print val       #Expected Output: 2
 
 
 # Question 5 ---------------------------------------------------   
@@ -233,12 +414,10 @@ def question5(ll, m):
         selected = selected.get_next()
 
     if m < 0:
-        raise ValueError("Verify Inputs")
-        #return "Verify Inputs"    
+        raise ValueError("Verify Inputs")  
     m = count-m
     if m < 0:
-        raise ValueError("Verify Inputs")
-        #return "Verify Inputs"    
+        raise ValueError("Verify Inputs")  
         
     val = selected.get_data()
 
@@ -280,243 +459,10 @@ LL.front_insert("B")
 LL.front_insert("A")
 
 #Testing the function
-question5(LL.head, 0)
-question5(LL.head, 1)
-question5(LL.head, 2)
-question5(LL.head, 3)
-question5(LL.head, 4)
-question5(LL.head, 5)
-question5(LL.head, -1)
-
-
-
-
-
-#Source for everything below: https://github.com/networkx/networkx
-
-from copy import deepcopy
-
-def _spanning_edges(G):
-                        
-    subtrees = UnionFind()
-    edges = G.edges()
-    getweight = lambda t: t[-1].get('weight', 1)
-    edges = sorted(edges, key=getweight)
-    
-    for u, v, d in edges:
-        if subtrees[u] != subtrees[v]:
-            yield (u, v, d)
-            subtrees.union(u, v)
-
-def minimum_spanning_tree(G):
-
-    edges = _spanning_edges(G)
-    T = Graph(edges)
-
-    for n in T:
-        T.node[n] = G.node[n].copy()
-    T.graph = G.graph.copy()
-
-    return T
-
-
-class UnionFind:
-
-    def __init__(self, elements=None):
-
-        if elements is None:
-            elements = ()
-        self.parents = {}
-        self.weights = {}
-
-    def __getitem__(self, object):
-
-        if object not in self.parents:
-            self.parents[object] = object
-            self.weights[object] = 1
-            return object
-
-        path = [object]
-        root = self.parents[object]
-        while root != path[-1]:
-            path.append(root)
-            root = self.parents[root]
-
-        for ancestor in path:
-            self.parents[ancestor] = root
-        return root
-
-    def union(self, *objects):
-        roots = [self[x] for x in objects]
-
-        heaviest = max(roots, key=lambda r: self.weights[r])
-        for r in roots:
-            if r != heaviest:
-                self.weights[heaviest] += self.weights[r]
-                self.parents[r] = heaviest
-
-class Graph(object):
-
-    node_dict_factory = dict
-    adjlist_dict_factory = dict
-    edge_attr_dict_factory = dict
-
-    def __init__(self, data=None, **attr):
-
-        self.node_dict_factory = ndf = self.node_dict_factory
-        self.adjlist_dict_factory = self.adjlist_dict_factory
-        self.edge_attr_dict_factory = self.edge_attr_dict_factory
-        self.graph = {}   # dictionary for graph attributes
-        self.node = ndf()  # empty node attribute dict
-        self.adj = ndf()  # empty adjacency dict
-        if data is not None:
-            to_graph(data, create_using=self)
-        self.graph.update(attr)
-        self.edge = self.adj
-
-
-    def __iter__(self):
-
-        return iter(self.node)
-
-    def __getitem__(self, n):
-
-        return self.adj[n]
-
-    def add_node(self, n, **attr):
-
-        if n not in self.node:
-            self.adj[n] = self.adjlist_dict_factory()
-            self.node[n] = attr
-        else:  # update attr even if node already exists
-            self.node[n].update(attr)
-
-    def nodes(self, data=False, default=None):
-
-        if data is True:
-            for n, ddict in self.node.items():
-                yield (n, ddict)
-        elif data is not False:
-            for n, ddict in self.node.items():
-                d = ddict[data] if data in ddict else default
-                yield (n, d)
-        else:
-            for n in self.node:
-                yield n
-
-    def number_of_nodes(self):
-
-        return len(self.node)
-
-    def add_edge(self, u, v, **attr):
-
-        if u not in self.node:
-            self.adj[u] = self.adjlist_dict_factory()
-            self.node[u] = {}
-        if v not in self.node:
-            self.adj[v] = self.adjlist_dict_factory()
-            self.node[v] = {}
-
-        datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
-        datadict.update(attr)
-        self.adj[u][v] = datadict
-        self.adj[v][u] = datadict
-
-    def add_edges_from(self, ebunch, **attr):
-
-        for e in ebunch:
-            ne = len(e)
-            if ne == 3:
-                u, v, dd = e
-            elif ne == 2:
-                u, v = e
-                dd = {}  # doesnt need edge_attr_dict_factory
-
-            if u not in self.node:
-                self.adj[u] = self.adjlist_dict_factory()
-                self.node[u] = {}
-            if v not in self.node:
-                self.adj[v] = self.adjlist_dict_factory()
-                self.node[v] = {}
-            datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
-            datadict.update(attr)
-            datadict.update(dd)
-            self.adj[u][v] = datadict
-            self.adj[v][u] = datadict
-
-    def neighbors(self, n):
-
-        return iter(self.adj[n])
-
-    def edges(self, default=None):
-
-        seen = {}     # helper dict to keep track of multiply stored edges
-        nodes_nbrs = self.adj.items()
-
-        for n, nbrs in nodes_nbrs:
-            for nbr, ddict in nbrs.items():
-                if nbr not in seen:
-                    yield (n, nbr, ddict)
-            seen[n] = 1
-        del seen
-
-    def adjacency(self):
-        return iter(self.adj.items())
-
-    def clear(self):
-
-        self.name = ''
-        self.adj.clear()
-        self.node.clear()
-        self.graph.clear()
-
-    def copy(self, with_data=True):
-
-        if with_data:
-            return deepcopy(self)
-        return self.subgraph(self)
-            
-def to_graph(data,create_using=None):
-    G=_prep_create_using(create_using)
-    G.add_edges_from(data)
-    return G
-    
-def _prep_create_using(create_using):
-    if create_using is None:
-        return Graph()
-    create_using.clear()
-
-    return create_using
-
-def shortest_path(G, source=None, target=None):
-    
-    Gsucc=G.neighbors
-    pred={source:None}
-    succ={target:None}
-    forward_fringe=[source]
-    reverse_fringe=[target]
-
-    while forward_fringe and reverse_fringe:
-        this_level=forward_fringe
-        forward_fringe=[]
-        for v in this_level:
-            for w in Gsucc(v):
-                if w not in pred:
-                    forward_fringe.append(w)
-                    pred[w]=v
-                if w in succ:  
-                    results = pred,succ,w
-                    
-    pred,succ,w = results
-    path=[]
-
-    while w is not None:
-        path.append(w)
-        w=pred[w]
-    path.reverse()
-    w=succ[path[-1]]
-    while w is not None:
-        path.append(w)
-        w=succ[w]
-
-    return path
+question5(LL.head, 0)       #Expected Output: E
+question5(LL.head, 1)       #Expected Output: D
+question5(LL.head, 2)       #Expected Output: C
+question5(LL.head, 3)       #Expected Output: B
+question5(LL.head, 4)       #Expected Output: A
+question5(LL.head, 5)       #Expected Output: Error - Verify Inputs
+question5(LL.head, -1)      #Expected Output: Error - Verify Inputs
