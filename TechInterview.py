@@ -1,4 +1,3 @@
-
 #Submission for Technical Interview Questions
 #5/12/13
 
@@ -293,41 +292,71 @@ question5(LL.head, -1)
 
 
 
-#Modified from: https://github.com/networkx/networkx
+#Source for everything below: https://github.com/networkx/networkx
 
 from copy import deepcopy
 
-def _spanning_edges(G):
+def _spanning_edges(G, algorithm='kruskal', weight='weight',keys=True, data=True):
                         
     subtrees = UnionFind()
     edges = G.edges(data=True)
-    getweight = lambda t: t[-1].get('weight', 1)
+    getweight = lambda t: t[-1].get(weight, 1)
     edges = sorted(edges, key=getweight)
     
     for u, v, d in edges:
         if subtrees[u] != subtrees[v]:
-            yield (u, v, d)
-
-        subtrees.union(u, v)
+            if data:
+                yield (u, v, d)
+            else:
+                yield (u, v)
+            subtrees.union(u, v)
 
 def minimum_spanning_tree(G):
 
-    edges = _spanning_edges(G)
+    edges = _spanning_edges(G, algorithm='kruskal', weight='weight',keys=False, data=True)
     T = Graph(edges)
+
     for n in T:
         T.node[n] = G.node[n].copy()
     T.graph = G.graph.copy()
 
     return T
 
+
 class UnionFind:
 
-    def __init__(self):
+    def __init__(self, elements=None):
+
+        if elements is None:
+            elements = ()
         self.parents = {}
         self.weights = {}
+        for x in elements:
+            self.weights[x] = 1
+            self.parents[x] = x
+
+    def __getitem__(self, object):
+
+        if object not in self.parents:
+            self.parents[object] = object
+            self.weights[object] = 1
+            return object
+
+        path = [object]
+        root = self.parents[object]
+        while root != path[-1]:
+            path.append(root)
+            root = self.parents[root]
+
+        for ancestor in path:
+            self.parents[ancestor] = root
+        return root
+
 
     def union(self, *objects):
+        """Find the sets containing the objects and merge them all."""
         roots = [self[x] for x in objects]
+
         heaviest = max(roots, key=lambda r: self.weights[r])
         for r in roots:
             if r != heaviest:
@@ -349,8 +378,13 @@ class Graph(object):
         self.graph = {}   # dictionary for graph attributes
         self.node = ndf()  # empty node attribute dict
         self.adj = ndf()  # empty adjacency dict
+        # attempt to load graph with data
+        if data is not None:
+            to_graph(data, create_using=self)
+        # load graph attributes (must be after convert)
         self.graph.update(attr)
         self.edge = self.adj
+
 
     def __iter__(self):
 
@@ -411,7 +445,43 @@ class Graph(object):
         self.adj[u][v] = datadict
         self.adj[v][u] = datadict
 
+    def add_edges_from(self, ebunch, **attr):
+
+        # process ebunch
+        for e in ebunch:
+            ne = len(e)
+            if ne == 3:
+                u, v, dd = e
+            elif ne == 2:
+                u, v = e
+                dd = {}  # doesnt need edge_attr_dict_factory
+
+            if u not in self.node:
+                self.adj[u] = self.adjlist_dict_factory()
+                self.node[u] = {}
+            if v not in self.node:
+                self.adj[v] = self.adjlist_dict_factory()
+                self.node[v] = {}
+            datadict = self.adj[u].get(v, self.edge_attr_dict_factory())
+            datadict.update(attr)
+            datadict.update(dd)
+            self.adj[u][v] = datadict
+            self.adj[v][u] = datadict
+
+    def add_weighted_edges_from(self, ebunch, weight='weight', **attr):
+
+        self.add_edges_from(((u, v, {weight: d}) for u, v, d in ebunch),
+                            **attr)
+
+    def has_edge(self, u, v):
+
+        try:
+            return v in self.adj[u]
+        except KeyError:
+            return False
+
     def neighbors(self, n):
+
         return iter(self.adj[n])
 
     def edges(self, data=False, default=None):
@@ -440,11 +510,63 @@ class Graph(object):
                 seen[n] = 1
         del seen
 
+    def get_edge_data(self, u, v, default=None):
+
+        try:
+            return self.adj[u][v]
+        except KeyError:
+            return default
+
+    def adjacency(self):
+
+        return iter(self.adj.items())
+
+    def clear(self):
+
+        self.name = ''
+        self.adj.clear()
+        self.node.clear()
+        self.graph.clear()
+
     def copy(self, with_data=True):
 
         if with_data:
             return deepcopy(self)
         return self.subgraph(self)
+
+    def is_directed(self):
+        """Return True if graph is directed, False otherwise."""
+        return False
+
+    def to_undirected(self):
+
+        return deepcopy(self)
+
+    def size(self, weight=None):
+
+        s = sum(d for v, d in self.degree(weight=weight))
+
+        return s // 2 if weight is None else s / 2
+
+    def number_of_edges(self, u=None, v=None):
+
+        if u is None: return int(self.size())
+        if v in self.adj[u]:
+            return 1
+        else:
+            return 0
+            
+def to_graph(data,create_using=None):
+    G=_prep_create_using(create_using)
+    G.add_edges_from(data)
+    return G
+    
+def _prep_create_using(create_using):
+    if create_using is None:
+        return Graph()
+    create_using.clear()
+
+    return create_using
 
 def shortest_path(G, source=None, target=None):
     
