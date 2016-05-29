@@ -293,30 +293,27 @@ question5(LL.head, -1)
 
 
 
-#Source for everything below: https://github.com/networkx/networkx
+#Modified from: https://github.com/networkx/networkx
 
 from copy import deepcopy
 
-def _spanning_edges(G, algorithm='kruskal', weight='weight',keys=True, data=True):
+def _spanning_edges(G):
                         
     subtrees = UnionFind()
     edges = G.edges(data=True)
-    getweight = lambda t: t[-1].get(weight, 1)
+    getweight = lambda t: t[-1].get('weight', 1)
     edges = sorted(edges, key=getweight)
     
     for u, v, d in edges:
         if subtrees[u] != subtrees[v]:
-            if data:
-                yield (u, v, d)
-            else:
-                yield (u, v)
-            subtrees.union(u, v)
+            yield (u, v, d)
+
+        subtrees.union(u, v)
 
 def minimum_spanning_tree(G):
 
-    edges = _spanning_edges(G, algorithm='kruskal', weight='weight',keys=False, data=True)
+    edges = _spanning_edges(G)
     T = Graph(edges)
-
     for n in T:
         T.node[n] = G.node[n].copy()
     T.graph = G.graph.copy()
@@ -325,20 +322,12 @@ def minimum_spanning_tree(G):
 
 class UnionFind:
 
-    def __init__(self, elements=None):
-
-        if elements is None:
-            elements = ()
+    def __init__(self):
         self.parents = {}
         self.weights = {}
-        for x in elements:
-            self.weights[x] = 1
-            self.parents[x] = x
 
     def union(self, *objects):
-        """Find the sets containing the objects and merge them all."""
         roots = [self[x] for x in objects]
-
         heaviest = max(roots, key=lambda r: self.weights[r])
         for r in roots:
             if r != heaviest:
@@ -423,7 +412,6 @@ class Graph(object):
         self.adj[v][u] = datadict
 
     def neighbors(self, n):
-
         return iter(self.adj[n])
 
     def edges(self, data=False, default=None):
@@ -452,72 +440,14 @@ class Graph(object):
                 seen[n] = 1
         del seen
 
-    def get_edge_data(self, u, v, default=None):
-
-        try:
-            return self.adj[u][v]
-        except KeyError:
-            return default
-
-    def clear(self):
-
-        self.name = ''
-        self.adj.clear()
-        self.node.clear()
-        self.graph.clear()
-
     def copy(self, with_data=True):
 
         if with_data:
             return deepcopy(self)
         return self.subgraph(self)
 
-    def is_directed(self):
-        """Return True if graph is directed, False otherwise."""
-        return False
-
-    def size(self, weight=None):
-
-        s = sum(d for v, d in self.degree(weight=weight))
-
-        return s // 2 if weight is None else s / 2
-
-    def number_of_edges(self, u=None, v=None):
-
-        if u is None: return int(self.size())
-        if v in self.adj[u]:
-            return 1
-        else:
-            return 0
-
 def shortest_path(G, source=None, target=None):
-
-    paths = bidirectional_shortest_path(G, source, target)
-    return paths
-
-def bidirectional_shortest_path(G,source,target):
-
-    # call helper to do the real work
-    results=_bidirectional_pred_succ(G,source,target)
-    pred,succ,w=results
-
-    # build path from pred+w+succ
-    path=[]
-    # from source to w
-    while w is not None:
-        path.append(w)
-        w=pred[w]
-    path.reverse()
-    # from w to target
-    w=succ[path[-1]]
-    while w is not None:
-        path.append(w)
-        w=succ[w]
-
-    return path
-
-def _bidirectional_pred_succ(G, source, target):
-
+    
     Gsucc=G.neighbors
     pred={source:None}
     succ={target:None}
@@ -533,4 +463,18 @@ def _bidirectional_pred_succ(G, source, target):
                     forward_fringe.append(w)
                     pred[w]=v
                 if w in succ:  
-                    return pred,succ,w
+                    results = pred,succ,w
+                    
+    pred,succ,w = results
+    path=[]
+
+    while w is not None:
+        path.append(w)
+        w=pred[w]
+    path.reverse()
+    w=succ[path[-1]]
+    while w is not None:
+        path.append(w)
+        w=succ[w]
+
+    return path
