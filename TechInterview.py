@@ -123,7 +123,15 @@ def question3(G):
         for val in value:
             Gnew.add_edge(key,val[0], key = val[1])
 
-    edges = _spanning_edges(Gnew)
+    #edges = _spanning_edges(Gnew)
+    
+    subtrees = UnionFind()
+    edges = Gnew.edges()
+    getweight = lambda t: t[-1].get('weight', 1)
+    edges = sorted(edges, key=getweight)
+    
+    edges = Gen(edges, subtrees)
+
     T = Graph(edges)
 
     for n in T:
@@ -132,20 +140,15 @@ def question3(G):
 
     return T
     
-#Modified from: https://github.com/networkx/networkx
-#Not using networkx functions or classes
-
-def _spanning_edges(G):
-                        
-    subtrees = UnionFind()
-    edges = G.edges()
-    getweight = lambda t: t[-1].get('weight', 1)
-    edges = sorted(edges, key=getweight)
     
+def Gen(edges, subtrees):
     for u, v, d in edges:
         if subtrees[u] != subtrees[v]:
             yield (u, v, d)
             subtrees.union(u, v)
+            
+#Modified from: https://github.com/networkx/networkx
+#Not using networkx classes directly.
     
 class Graph(object):
 
@@ -303,8 +306,7 @@ print(sorted(val.edges())) #Expected Output: [('A', 'B', {'key': 2})]
 #                   G, n, and m will be assigned during the call.  This will 
 #                   result in O(2+n).  The n is for G and the 2 is for n and m.
 #
-# Code Design:  Functions and classes were used to make the code easier 
-#               to read.
+# Code Design:  Classes were used to make the code easier to read.
 
 def question4(T, r, n1, n2):
     
@@ -331,27 +333,12 @@ def question4(T, r, n1, n2):
                 for a in L1.iteritems():
                     if G.node[a[0]]['Level'] == None:
                         G.node[a[0]]['Level'] = L+1
-        
-    path = shortest_path(G,n1,n2)
-    path.pop(0)
-    path.pop(len(path)-1)    
-    
-    LCALevel = G.node[n1]['Level']
-    for n in path:
-        val = G.node[n]['Level']
-        if val < LCALevel:
-            LCALevel = G.node[n]['Level']
-            LCA = n
-    
-    return LCA   
-    
-def shortest_path(G, source=None, target=None):
     
     Gsucc=G.neighbors
-    pred={source:None}
-    succ={target:None}
-    forward_fringe=[source]
-    reverse_fringe=[target]
+    pred={n1:None}
+    succ={n2:None}
+    forward_fringe=[n1]
+    reverse_fringe=[n2]
 
     while forward_fringe and reverse_fringe:
         this_level=forward_fringe
@@ -374,10 +361,20 @@ def shortest_path(G, source=None, target=None):
     w=succ[path[-1]]
     while w is not None:
         path.append(w)
-        w=succ[w]
-
-    return path
-
+        w=succ[w] 
+    
+    path.pop(0)
+    path.pop(len(path)-1)    
+    
+    LCALevel = G.node[n1]['Level']
+    for n in path:
+        val = G.node[n]['Level']
+        if val < LCALevel:
+            LCALevel = G.node[n]['Level']
+            LCA = n
+    
+    return LCA   
+    
 #Testing the function
 val = question4([[0,1,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[1,0,0,0,1],[0,0,0,0,0]],3,1,4)
 print val       #Expected Output: 3 
